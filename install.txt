@@ -1,0 +1,7 @@
+export RKE2_API_VIP=192.168.22.17
+export RKE2_NODE_0_IP=192.168.22.10
+export RKE2_NODE_1_IP=192.168.22.11
+export RKE2_NODE_2_IP=192.168.22.12
+export NODE_JOIN_TOKEN="RancherOnNutanixRocks"
+export INTERFACE=enp6s18
+export KUBE_VIP_VERSION=v0.4.2
