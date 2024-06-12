@@ -1,0 +1,42 @@
+---
+- name: Delete Proxmox VM
+  hosts: localhost
+  gather_facts: no
+  vars:
+    api_url: "https://192.168.3.10:8006/api2/json"  # URL API của Proxmox
+    api_user: "tint"                               # Tên đăng nhập
+    api_password: "12345678"                        # Mật khẩu
+    vm_ids_to_delete: "{{ range(121, 130) | list }}" # Danh sách các ID máy ảo cần xóa
+
+  tasks:
+    - name: Get Proxmox API ticket
+      uri:
+        url: "{{ api_url }}/access/ticket"
+        method: POST
+        body_format: form-urlencoded
+        body:
+          username: "{{ api_user }}"
+          password: "{{ api_password }}"
+          realm: "pve"                              # Đặt realm là Proxmox VE
+        headers:
+          Content-Type: application/x-www-form-urlencoded
+        validate_certs: no
+      register: login_response
+      failed_when: login_response.status != 200
+      retries: 3
+      delay: 5
+
+    - name: Fail if login unsuccessful
+      fail:
+        msg: "Failed to authenticate with Proxmox API"
+      when: login_response.status != 200
+
+    - name: Delete VMs
+      uri:
+        url: "{{ api_url }}/nodes/pve/qemu/{{ item }}"
+        method: DELETE
+        headers:
+          Cookie: "PVEAuthCookie={{ login_response.json.data.ticket }}"
+          CSRFPreventionToken: "{{ login_response.json.data.CSRFPreventionToken }}"
+        validate_certs: no
+      loop: "{{ vm_ids_to_delete }}"

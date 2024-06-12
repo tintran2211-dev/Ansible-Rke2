@@ -1,0 +1,55 @@
+---
+- name: Create multiple containers with minimal options defining network interface with static IP
+  hosts: localhost
+  gather_facts: no
+
+  vars:
+    num_containers: 4
+    start_vmid: 130
+    node: pve
+    api_user: tint@pve
+    api_password: 12345678
+    api_host: 192.168.3.10
+    hostname_prefix: rke2
+    ostemplate: 'local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst'
+    base_ip: '192.168.222.'
+    ip_suffix_start: 20
+    storage: local-lvm
+    vm_password: "admin"
+    dns_servers:
+      - 1.1.1.1
+      - 1.0.0.1
+
+  tasks:
+    - name: Create a list of container definitions
+      set_fact:
+        containers: []
+
+    - name: Populate the list of container definitions
+      loop: "{{ range(num_containers) | list }}"
+      loop_control:
+        loop_var: index
+      set_fact:
+        containers: "{{ containers + [{ 'vmid': start_vmid + index, 'hostname': hostname_prefix ~ '-' ~ (start_vmid + index), 'ip': base_ip ~ (ip_suffix_start + index) ~ '/16' }] }}"
+
+    - name: Create new containers
+      community.general.proxmox:
+        vmid: "{{ item.vmid }}"
+        node: "{{ node }}"
+        api_user: "{{ api_user }}"
+        api_password: "{{ api_password }}"
+        api_host: "{{ api_host }}"
+        hostname: "{{ item.hostname }}"
+        ostemplate: "{{ ostemplate }}"
+        netif: |
+          {
+            "net0": "name=eth0,ip={{ item.ip }},gw=192.168.1.1,bridge=vmbr0",
+            "nameserver": "{{ dns_servers[0] }}",
+            "searchdomain": "{{ dns_servers[1] }}"
+          }
+        storage: "{{ storage }}"
+        cores: 4
+        memory: 4096
+        password: "{{ vm_password }}"
+        onboot: yes
+      loop: "{{ containers }}"

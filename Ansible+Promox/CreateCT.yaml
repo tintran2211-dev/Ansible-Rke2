@@ -1,0 +1,33 @@
+---
+- name: Create new container with minimal options defining network interface with static IP
+  hosts: localhost
+  gather_facts: no
+
+  vars:
+    vmid: 129
+    node: pve
+    api_user: tint@pve
+    api_password: 12345678
+    api_host: 192.168.3.10
+    hostname: rke2
+    ostemplate: 'local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst'
+    netif: '{"net0":"name=eth0,gw=192.168.1.1,ip=192.168.222.21/16,bridge=vmbr0"}'
+    storage: local-lvm
+    vm_password: "admin"
+
+  tasks:
+    - name: Create new container
+      community.general.proxmox:
+        vmid: "{{ vmid }}"
+        node: "{{ node }}"
+        api_user: "{{ api_user }}"
+        api_password: "{{ api_password }}"
+        api_host: "{{ api_host }}"
+        hostname: "{{ hostname }}"
+        ostemplate: "{{ ostemplate }}"
+        netif: "{{ netif }}"
+        storage: "{{ storage }}"
+        cores: 4
+        memory: 4096
+        password: "{{ vm_password }}"
+        onboot: yes
